@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Animage - Anime Image Gallery</title>
+  <style>
+    /* Masonry Grid */
+    .gallery {
+      column-count: 4;
+      column-gap: 15px;
+    }
+    @media(max-width: 800px){ .gallery{ column-count: 2; }}
+    @media(max-width: 500px){ .gallery{ column-count: 1; }}
+    .img-card {
+      display: inline-block;
+      width: 100%;
+      margin: 0 0 15px;
+      position: relative;
+    }
+    .fav-btn{
+      position:absolute;
+      top:10px;
+      right:10px;
+      padding:6px 10px;
+      background:rgba(0,0,0,0.6);
+      color:#fff;
+      border-radius:6px;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .tag-box{
+      background:#222;
+      padding:5px 8px;
+      border-radius:6px;
+      font-size:11px;
+      display:inline-block;
+      margin-right:4px;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #fff;
+    }
+    header {
+      background: #ff4ecb;
+      padding: 20px;
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+    #upload-section {
+      text-align: center;
+      padding: 20px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+    }
+    input[type="file"] {
+      margin-top: 10px;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      padding: 20px;
+    }
+    .gallery img {
+      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #000;
+    }
+    /* Anime-style theme enhancements */
+    .gallery img:hover {
+      transform: scale(1.05);
+      transition: 0.3s;
+    }
+    .btn-download {
+      display: inline-block;
+      background: #ff4ecb;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .img-card {
+      position: relative;
+    }
+    .download-link {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.6);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <header>ANIMAGE</header>
+
+  <nav style="background:#1a1a1a; padding:15px; text-align:center;">
+    <button id="showAllBtn" style="padding:10px 20px; border:none; border-radius:8px; background:#ff4ecb; color:#fff; margin-right:10px;">All Images</button>
+    <button id="showFavBtn" style="padding:10px 20px; border:none; border-radius:8px; background:#ff4ecb; color:#fff;">Favourites</button>
+  </nav>
+
+  <section id="upload-section">
+    <h2>Search Images</h2>
+    <input type="text" id="searchBar" placeholder="Search anime images..." style="padding:10px;width:80%;max-width:400px;border-radius:8px;border:none;outline:none;">
+    <h2>Upload Anime Images</h2>
+    <h2>Upload Anime Images</h2>
+    <input type="file" id="imageUpload" accept="image/*" multiple />
+  </section>
+
+  <div class="gallery" id="gallery"></div>
+
+  <script>
+    const uploadInput = document.getElementById('imageUpload');
+    const gallery = document.getElementById('gallery');
+    const searchBar = document.getElementById('searchBar');
+    let imagesData = []; // Stores images, tags, fav state
+    let loadedCount = 0;
+    const LOAD_BATCH = 10;
+    let favouriteList = JSON.parse(localStorage.getItem('favourites') || '[]'); = []; // Store images with tags and favourite state
+    let loadedCount = 0; // infinite scroll counter
+    const LOAD_BATCH = 10; // load 10 at a time
+
+    uploadInput.addEventListener('change', function () {
+      for (let file of this.files) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          const card = document.createElement('div');
+          card.className = 'img-card';
+          const favBtn = document.createElement('div');
+          favBtn.className = 'fav-btn';
+          favBtn.innerText = favouriteList.includes(e.target.result) ? '❤️' : '🤍';
+          favBtn.onclick = () => toggleFavourite(e.target.result, favBtn);
+
+          const download = document.createElement('a');
+          download.href = e.target.result;
+          download.download = 'animage.jpg';
+          download.className = 'download-link';
+          download.innerText = 'Download';
+
+          card.appendChild(img);
+          card.appendChild(download);
+          card.appendChild(favBtn);(img);
+          card.appendChild(download);
+          imagesData.push({ src: e.target.result, element: card, tags: generateTags(file.name), fav:false });({ src: e.target.result, element: card });
+          // do not append immediately — infinite scroll handles it
+          (card);(card);(img);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    searchBar.addEventListener('input', function () {
+      const query = this.value.toLowerCase();
+      imagesData.forEach(item => {
+        if (query === '' || item.src.toLowerCase().includes(query)) {
+          item.element.style.display = 'block';
+        } else {
+          item.element.style.display = 'none';
+        }
+      });
+    });
+    function generateTags(name){
+      return name.split(/[-_ ]/).slice(0,3);
+    }
+
+    function renderImages(favOnly = false){
+      gallery.innerHTML = '';
+      loadedCount = 0;
+      const filtered = favOnly ? imagesData.filter(i=> favouriteList.includes(i.src)) : imagesData;
+      const slice = filtered.slice(0, LOAD_BATCH);
+      slice.forEach(item=> gallery.appendChild(item.element));
+      loadedCount = LOAD_BATCH;
+    }(){
+      const slice = imagesData.slice(loadedCount, loadedCount + LOAD_BATCH);
+      slice.forEach(item=> gallery.appendChild(item.element));
+      loadedCount += LOAD_BATCH;
+    }
+
+    window.addEventListener('scroll', () =>{
+      if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 100){
+        const filtered = showingFavs ? imagesData.filter(i=> favouriteList.includes(i.src)) : imagesData;
+        const slice = filtered.slice(loadedCount, loadedCount + LOAD_BATCH);
+        slice.forEach(item=> gallery.appendChild(item.element));
+        loadedCount += LOAD_BATCH;
+      }
+    });('scroll', () =>{
+      if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 100){
+        renderImages();
+      }
+    });
+
+    searchBar.addEventListener('input', function () {
+      const query = this.value.toLowerCase();
+      imagesData.forEach(item => {
+        const match = item.tags.some(t => t.toLowerCase().includes(query)) || item.src.toLowerCase().includes(query);
+        item.element.style.display = match ? 'inline-block' : 'none';
+      });
+    });
+
+    // FAVOURITE SYSTEM
+    let showingFavs = false;
+
+    function toggleFavourite(src, btn){
+      if(favouriteList.includes(src)){
+        favouriteList = favouriteList.filter(x => x !== src);
+        btn.innerText = '🤍';
+      } else {
+        favouriteList.push(src);
+        btn.innerText = '❤️';
+      }
+      localStorage.setItem('favourites', JSON.stringify(favouriteList));
+    }
+
+    document.getElementById('showAllBtn').onclick = () =>{
+      showingFavs = false;
+      renderImages(false);
+    }
+
+    document.getElementById('showFavBtn').onclick = () =>{
+      showingFavs = true;
+      renderImages(true);
+    }
+
+    // First batch rendering
+    renderImages();
+  </script>
+</body>
+</html>
